@@ -1,0 +1,49 @@
+GGX EN Patch - fan English patch for マブラヴ ガールズガーデンX (DMM PC client)
+==========================================================================
+
+Translates the story text, speaker names, choices, episode/chapter titles, the game's
+data text (items, skills, missions, home and talk lines, Tweety, Pico's tutorials) and
+the fixed menu labels (buttons, tabs, notices). Text that only appears in new events
+may still be Japanese until the next translation update.
+The patch only changes what is shown on your PC; nothing is sent to the game server.
+Full instructions: https://github.com/sorakee/MLGG-EnTL
+
+!! WARNING: USE THIS PATCH AT YOUR OWN RISK !!
+Modifying the game client may be against the game's terms of service. The developers of
+this patch are not responsible for any action taken against your account, including
+suspension or a ban, or for any other consequence of using it.
+
+1. Install BepInEx 6.0.0-be.788, Unity IL2CPP, Windows x64:
+     https://builds.bepinex.dev/projects/bepinex_be
+   (file name starts with BepInEx-Unity.IL2CPP-win-x64-6.0.0-be.788)
+   Unzip it into the game folder, next to muv_luv_girlsgardenx_cl.exe.
+
+2. Start the game once and close it at the title screen. The first launch takes
+   a few minutes while BepInEx sets itself up (BepInEx\interop appears).
+
+3. Copy this archive's BepInEx folder into the game folder, merging folders.
+   You should end up with BepInEx\plugins\GGXEnPatch\GGXEnPatch.dll.
+
+4. Start the game. On the first launch the plugin downloads the translations
+   (about 6.5 MB) into BepInEx\plugins\GGXEnPatch\translations. Restart the game once
+   so menus and game data text switch to English too.
+
+Updating: automatic. On each launch the plugin downloads only the translation
+changes from the patch's pack host (nothing about you or the game is sent).
+A new GGXEnPatch.dll is announced in the BepInEx log; replace it by hand.
+Adult (R18) scene text is a separate pack, included by default ([Update] IncludeR18).
+
+Options (BepInEx\config\ggx.enpatch.cfg, created on first run):
+  [Text]   LineBreaks = Keep | Strip   Strip lets the text box wrap lines itself.
+  [Text]   FitUiLabels = true          Shrink long English menu labels to fit their box.
+  [Update] AutoUpdate = true           Download translation updates on launch.
+  [Update] IncludeR18 = true           Also download the adult scenes' text.
+  [Debug]  MarkUntranslated = true     Prefix untranslated lines with "[JP] ".
+  [Debug]  LogUntranslatedUi = true    List Japanese menu text still on screen in
+                                       BepInEx\plugins\GGXEnPatch\ui-untranslated.tsv.
+
+Uninstall: delete winhttp.dll, doorstop_config.ini, .doorstop_version and the
+BepInEx and dotnet folders from the game folder.
+
+After a game update BepInEx regenerates its files on the next launch (slow start
+again). If the game breaks after an update, remove BepInEx until the patch is updated.

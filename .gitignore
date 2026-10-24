@@ -1,0 +1,28 @@
+# Personal edition: private local tools, never published (see GGXEnPatch.csproj)
+Personal/
+
+# Build output
+bin/
+obj/
+*.user
+.vs/
+.vscode/
+.idea/
+
+# Translation packs are release assets, not source (19 MB, rebuilt weekly)
+translations/
+*.json.gz
+translations*.json
+update-*.json
+
+# Runtime files a local game folder or test run may leave behind
+ui-untranslated.tsv
+url-log.tsv
+fetch-list.txt
+fetched/
+*.log
+
+# OS
+Thumbs.db
+Desktop.ini
+.DS_Store

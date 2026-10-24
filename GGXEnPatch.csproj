@@ -1,0 +1,72 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <!--
+    Two editions (dotnet build -c Release -p:Edition=...):
+      Community (default): translation only. This is the build that gets shared.
+      Personal: also compiles Personal\ (private local tools, not in the public
+                repository). Never share this one.
+    Personal\ is left out of the Community compile entirely, so the shared DLL
+    doesn't contain it at all.
+  -->
+  <PropertyGroup>
+    <TargetFramework>net6.0</TargetFramework>
+    <AssemblyName>GGXEnPatch</AssemblyName>
+    <LangVersion>latest</LangVersion>
+    <Nullable>disable</Nullable>
+    <GameDir Condition="'$(GameDir)' == ''">S:\muv_luv_girlsgardenx_cl</GameDir>
+    <Edition Condition="'$(Edition)' == ''">Community</Edition>
+    <CopyLocalLockFileAssemblies>false</CopyLocalLockFileAssemblies>
+    <OutputPath>bin\$(Configuration)\$(Edition)\</OutputPath>
+    <IntermediateOutputPath>obj\$(Configuration)\$(Edition)\</IntermediateOutputPath>
+    <!-- Community output is staged as a ready-to-zip folder, not copied into the game. -->
+    <DistDir>$(MSBuildProjectDirectory)\..\dist\GGXEnPatch-Community</DistDir>
+  </PropertyGroup>
+
+  <PropertyGroup Condition="'$(Edition)' == 'Personal'">
+    <DefineConstants>$(DefineConstants);PERSONAL</DefineConstants>
+  </PropertyGroup>
+
+  <!-- No PDB path (it holds the Windows user name) or local source paths in the shared DLL. -->
+  <PropertyGroup Condition="'$(Edition)' == 'Community'">
+    <DebugType>none</DebugType>
+    <Deterministic>true</Deterministic>
+    <PathMap>$(MSBuildProjectDirectory)=GGXEnPatch</PathMap>
+  </PropertyGroup>
+
+  <Target Name="CheckEdition" BeforeTargets="Build">
+    <Error Condition="'$(Edition)' != 'Community' And '$(Edition)' != 'Personal'"
+           Text="Edition must be Community or Personal, not '$(Edition)'." />
+  </Target>
+
+  <ItemGroup Condition="'$(Edition)' != 'Personal'">
+    <Compile Remove="Personal\**" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <!-- BepInEx core and the interop assemblies it generates on first launch. -->
+    <Reference Include="$(GameDir)\BepInEx\core\*.dll" Private="false" />
+    <Reference Include="$(GameDir)\BepInEx\interop\*.dll" Private="false" />
+    <None Include="INSTALL.txt" />
+  </ItemGroup>
+
+  <Target Name="CopyToPlugins" AfterTargets="Build" Condition="'$(Edition)' == 'Personal'">
+    <Copy SourceFiles="$(TargetPath)" DestinationFolder="$(GameDir)\BepInEx\plugins\GGXEnPatch" />
+    <MakeDir Directories="$(GameDir)\BepInEx\plugins\GGXEnPatch\translations" />
+  </Target>
+
+  <!--
+    Ships only the DLL and install notes: translation packs are published apart (pack/publish.py)
+    and the plugin downloads them. Nothing from the game's plugin folder is copied.
+  -->
+  <Target Name="StageCommunity" AfterTargets="Build" Condition="'$(Edition)' == 'Community'">
+    <PropertyGroup>
+      <PackDir>$(DistDir)\BepInEx\plugins\GGXEnPatch</PackDir>
+    </PropertyGroup>
+    <RemoveDir Directories="$(DistDir)" />
+    <Copy SourceFiles="$(TargetPath)" DestinationFolder="$(PackDir)" />
+    <MakeDir Directories="$(PackDir)\translations" />
+    <Copy SourceFiles="INSTALL.txt" DestinationFolder="$(DistDir)" />
+    <Message Importance="high" Text="Community build staged in $(DistDir)" />
+  </Target>
+
+</Project>
