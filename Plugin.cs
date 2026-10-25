@@ -19,7 +19,7 @@ public enum LineBreakMode
 public partial class Plugin : BasePlugin
 {
     public const string Guid = "ggx.enpatch";
-    public const string Version = "0.5.0";
+    public const string Version = "0.5.1";
     /// <summary>Where pack/publish.py publishes the packs: &lt;url&gt;/&lt;channel&gt;/manifest-&lt;channel&gt;.json.
     /// The config's PackUrl defaults to empty (= this), so a later version can move every player.</summary>
     public const string DefaultPackUrl = "https://pub-c34991024c2e4fa89421fb9c498384c0.r2.dev";

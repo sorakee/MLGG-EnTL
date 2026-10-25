@@ -131,7 +131,9 @@ static class UiText
         if (Plugin.FitUi.Value && label != null)
         {
             if (IsNavigator(label)) Wrap(label);
-            else Fit(label, en);
+            // Never the story box (TextViewText): it is one label for every line, and fitting sticks, so a
+            // one-word match while an untranslated line types ("（……！）") left it unwrapped at 60% (issue #1, #2).
+            else if (!IsTypewriter(label)) Fit(label, en);
         }
         return en;
     }
