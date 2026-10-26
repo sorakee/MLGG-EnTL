@@ -3,10 +3,10 @@
   <!--
     Two editions (dotnet build -c Release -p:Edition=...):
       Community (default): translation only. This is the build that gets shared.
-      Personal: also compiles Personal\ (private local tools, not in the public
+      Personal: also compiles src\Personal\ (private local tools, not in the public
                 repository). Never share this one.
-    Personal\ is left out of the Community compile entirely, so the shared DLL
-    doesn't contain it at all.
+    src\Personal\ is left out of the Community compile entirely, so the shared DLL
+    doesn't contain it at all. All plugin code lives under src\.
   -->
   <PropertyGroup>
     <TargetFramework>net6.0</TargetFramework>
@@ -39,7 +39,7 @@
   </Target>
 
   <ItemGroup Condition="'$(Edition)' != 'Personal'">
-    <Compile Remove="Personal\**" />
+    <Compile Remove="src\Personal\**" />
   </ItemGroup>
 
   <ItemGroup>

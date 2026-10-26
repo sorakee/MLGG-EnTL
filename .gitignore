@@ -1,5 +1,5 @@
 # Personal edition: private local tools, never published (see GGXEnPatch.csproj)
-Personal/
+src/Personal/
 
 # Build output
 bin/

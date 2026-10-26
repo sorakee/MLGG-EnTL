@@ -77,6 +77,6 @@ public partial class Plugin : BasePlugin
         Logger.LogInfo($"GGX EN Patch {Version} ({Edition}) loaded.");
     }
 
-    /// <summary>Extra local tools of the Personal edition (Personal/, not in the public repository).</summary>
+    /// <summary>Extra local tools of the Personal edition (src/Personal/, not in the public repository).</summary>
     partial void LoadPersonal(string dir);
 }

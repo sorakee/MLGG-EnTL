@@ -112,7 +112,8 @@ game breaks after an update, remove BepInEx until the patch is updated.
 ## Building from source
 
 Needs the .NET 6 SDK (or newer) and the game with BepInEx installed and launched once, because the
-build references `BepInEx\core` and the generated `BepInEx\interop` assemblies.
+build references `BepInEx\core` and the generated `BepInEx\interop` assemblies. The code is in `src\`;
+run the build from the repository root, where `GGXEnPatch.csproj` is.
 
 ```
 dotnet build -c Release -p:GameDir="C:\path\to\muv_luv_girlsgardenx_cl"
