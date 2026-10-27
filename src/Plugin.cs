@@ -70,6 +70,7 @@ public partial class Plugin : BasePlugin
             Updater.Start(Store.Dir, channels.Select(c => $"{url}/{c}/manifest-{c}.json"));
         }
         Harmony.CreateAndPatchAll(typeof(ScenarioPatches));
+        Harmony.CreateAndPatchAll(typeof(ScenarioServicePatches));
         Harmony.CreateAndPatchAll(typeof(UiTextPatches));
         AddComponent<MasterTextRunner>();
         AddComponent<TextFitRunner>();
