@@ -89,8 +89,9 @@ static class UiText
         return false;
     }
 
+    // Literal \r\n too: the game's localization table (since 2026-10-27) writes some breaks that way.
     static string Normalize(string s) =>
-        s.IndexOf('\r') >= 0 || s.Contains("\\n") ? s.Replace("\r\n", "\n").Replace("\\n", "\n") : s;
+        s.IndexOf('\r') >= 0 || s.Contains("\\n") ? s.Replace("\r\n", "\n").Replace("\\r\\n", "\n").Replace("\\n", "\n") : s;
 
     /// <summary>English for a label's text, or the same string if there's none.</summary>
     internal static string Translate(string jp, TMP_Text label)
