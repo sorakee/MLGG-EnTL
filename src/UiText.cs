@@ -202,6 +202,21 @@ static class UiText
         }
         // Most literal text first, so 「{0}日{1}時間」 wins over 「{0}時間」.
         formats = list.OrderByDescending(f => f.Pattern.ToString().Length).ToArray();
+
+        // Tidy the log once a session, now that every lookup works (formats included): drop rows translated
+        // by now, queue unsent ones.
+        if (logged == null && Plugin.LogUntranslatedUi.Value)
+        {
+            try
+            {
+                OpenLog();
+            }
+            catch (Exception e)
+            {
+                Plugin.Logger.LogError(e);
+                log = null;
+            }
+        }
     }
 
     static string Exact(string s, TranslationStore store) =>
@@ -410,28 +425,112 @@ static class UiText
         if (plain.IndexOf(' ') < 0 && plain.IndexOf('\n') < 0) label.textWrappingMode = TextWrappingModes.NoWrap;
     }
 
-    /// <summary>[Debug] LogUntranslatedUi: each Japanese label text without English, once, with where it was
-    /// seen, to ui-untranslated.tsv (tools/ui_text.py build --harvest reads it).</summary>
+    /// <summary>[Report] LogUntranslatedUi (on by default): each Japanese label text without English, once,
+    /// with where it was seen, to ui-untranslated.tsv (translate/work/ui_resolve_check.py and
+    /// tools/ui_text.py read it). Players attach the file to issues, so only menu text goes in: see
+    /// <see cref="Loggable"/> and <see cref="IsPrivate"/>. The file is opened at the first lookup of a session
+    /// (end of Rebuild): rows that resolve by now (a pack update since) or that the filters reject are
+    /// dropped, so the file holds current misses only.</summary>
     static void Log(string jp, TMP_Text label)
     {
         try
         {
-            if (logged == null)
-            {
-                var path = Path.Combine(Paths.PluginPath, "GGXEnPatch", "ui-untranslated.tsv");
-                logged = File.Exists(path)
-                    ? File.ReadAllLines(path).Select(l => l.Split('\t')[0]).ToHashSet()
-                    : new HashSet<string>();
-                log = new StreamWriter(path, true, new UTF8Encoding(false)) { AutoFlush = true };
-            }
-            var escaped = jp.Replace("\t", "\\t").Replace("\r", "").Replace("\n", "\\n");
+            if (label != null && label.name == TypewriterLabel || !Loggable(jp)) return;
+            if (logged == null) OpenLog();
+            if (log == null || logBytes >= LogLimit) return;
+            var escaped = Escape(jp);
             if (!logged.Add(escaped)) return;
-            log.WriteLine($"{escaped}\t{PathOf(label)}");
+            var path = PathOf(label);
+            if (IsPrivate(escaped, path)) return;  // stays in logged: the same text isn't checked again
+            var line = $"{escaped}\t{path}";
+            log.WriteLine(line);
+            logBytes += Encoding.UTF8.GetByteCount(line) + 2;
+            Reporter.QueueUi(escaped, path);
         }
         catch (Exception e)
         {
             Plugin.Logger.LogError(e);
+            log = null;
         }
+    }
+
+    const int LogLimit = 1 << 20;  // bytes; the filters keep a normal player's file far below this
+    const int LogMaxText = 2000;  // chars; longer is server text (news, notices), not a label
+    static long logBytes;
+    static readonly Regex NoParse = new(@"<noparse>.*?</noparse>", RegexOptions.Singleline);
+
+    static string Escape(string s) => s.Replace("\t", "\\t").Replace("\r", "").Replace("\n", "\\n");
+
+    /// <summary>Text worth a row: kana or kanji outside &lt;noparse&gt; (where the game puts the player's
+    /// name into English lines), and not a page of server text.</summary>
+    static bool Loggable(string jp) => jp.Length <= LogMaxText && HasWords(NoParse.Replace(jp, ""));
+
+    /// <summary>Text players or the operator write, found by the label's path: typed fields (names, circle
+    /// introductions, profile comments), chat, news, and the labels that show a player's or circle's name.
+    /// RankingName is a ranking's title, so it is logged.</summary>
+    static bool IsPrivate(string text, string path)
+    {
+        if (path.Contains("InputField") || path.Contains("Chat") || path.Contains("/News/")) return true;
+        var cut = path.LastIndexOf('/');
+        var leaf = path.Substring(cut + 1);
+        if (leaf is "UserNameText" or "UserName" or "FriendName" or "PlayerName" or "CircleName") return true;
+        if (leaf is "NameText" or "Name")
+        {
+            var scope = path.ToLowerInvariant();
+            foreach (var s in PrivateNameScopes)
+                if (scope.Contains(s)) return true;
+        }
+        // the P-1 quest banner: 「VS <opponent's player name>」
+        return text.StartsWith("VS ", StringComparison.Ordinal) && path.EndsWith("TitleBack/Mask/Body", StringComparison.Ordinal);
+    }
+
+    static readonly string[] PrivateNameScopes = { "circle", "grandprix", "ranking", "opponent", "friend", "profile", "memberlist" };
+
+    /// <summary>Reads the log, keeps the rows that are still misses (by today's filters and pack), rewrites
+    /// it if any went, and opens it for appending.</summary>
+    static void OpenLog()
+    {
+        logged = new HashSet<string>();
+        var path = Path.Combine(Paths.PluginPath, "GGXEnPatch", "ui-untranslated.tsv");
+        var keep = new List<string>();
+        var dropped = 0;
+        if (File.Exists(path))
+            foreach (var line in File.ReadAllLines(path))
+            {
+                if (line.Length == 0) continue;
+                var tab = line.IndexOf('\t');
+                var text = tab < 0 ? line : line.Substring(0, tab);
+                var where = tab < 0 ? "" : line.Substring(tab + 1);
+                if (logged.Add(text) && StillMissing(text, where)) keep.Add(line);
+                else dropped++;
+            }
+        if (dropped > 0)
+        {
+            File.WriteAllLines(path + ".tmp", keep, new UTF8Encoding(false));
+            File.Move(path + ".tmp", path, true);
+            Plugin.Logger.LogInfo($"ui-untranslated.tsv: {keep.Count} rows kept, {dropped} dropped (translated by now, or not menu text).");
+        }
+        logBytes = keep.Sum(l => (long)Encoding.UTF8.GetByteCount(l) + 2);
+        log = new StreamWriter(path, true, new UTF8Encoding(false)) { AutoFlush = true, NewLine = "\r\n" };
+        var rows = keep.Select(l => l.Split('\t', 2)).ToList();
+        Reporter.KeepSent(rows.Select(r => r[0]).ToHashSet());
+        foreach (var r in rows) Reporter.QueueUi(r[0], r.Length > 1 ? r[1] : "");
+    }
+
+    /// <summary>A logged row that today's filters still accept and today's pack still can't translate
+    /// (the same lookup as <see cref="Translate"/>, minus the label).</summary>
+    static bool StillMissing(string escaped, string where)
+    {
+        var jp = escaped.Replace("\\t", "\t");  // \n stays literal: Normalize makes it a line break
+        if (where.EndsWith("/" + TypewriterLabel, StringComparison.Ordinal) || !Loggable(jp) || IsPrivate(escaped, where))
+            return false;
+        var s = Normalize(jp);
+        if (where.Contains("Navigator/Back/"))
+        {
+            s = Sweep.Replace(s, "");
+            return (Exact(s, Plugin.Store) ?? Typed(s) ?? Resolve(s, Plugin.Store, 0, split: false)) == null;
+        }
+        return Resolve(s, Plugin.Store, 0) == null;
     }
 
     static string PathOf(Component c)
