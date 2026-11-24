@@ -15,9 +15,16 @@ What is translated:
 Some text exists only on the server and appears for the first time in game (new events, rare menus).
 See [Reporting untranslated text](#reporting-untranslated-text).
 
+> [!NOTE]
+> **A quiet repository doesn't mean a dead project.** The plugin (`GGXEnPatch.dll`) gets a new release
+> only when a game update breaks it or a fix needs new code, so releases are rare. The translations are
+> a separate thing: they are updated every week (new events and episodes, fixes, text players report)
+> and your plugin downloads them on every launch. A plugin release from months ago still gets this
+> week's translations. See [Updating](#updating).
+
 This is an unofficial fan project, not affiliated with or endorsed by the game's publishers. It is
-for the Japanese client. An official English release is planned for late 2026; when it ships, its
-UI and system terms win, and this patch will follow them where it can.
+for the Japanese client and is translated from the Japanese text; the official English client is
+a separate translation.
 
 > [!WARNING]
 > **Use this patch at your own risk.** Modifying the game client may be against the game's terms of
@@ -51,8 +58,8 @@ Translations improve every week: new events, fixes, and text players report. The
 them each time the game starts and downloads only what changed, usually a few kilobytes, in the
 background. Story text switches over at once; menus and game data text after the next restart.
 
-- It contacts only the patch's pack host and sends nothing about you or the game. Every file is
-  checked against the manifest's SHA-256 before it replaces anything.
+- The update check contacts only the patch's pack host and sends nothing about you or the game.
+  Every file is checked against the manifest's SHA-256 before it replaces anything.
 - To update by hand instead, set `[Update] AutoUpdate = false`. The manifests list the current files:
   <https://pub-c34991024c2e4fa89421fb9c498384c0.r2.dev/main/manifest-main.json> (and `r18/manifest-r18.json`).
   Download the base `url` and every update `url`, unzip each (`.gz`) and save it under its `file` name in
@@ -73,17 +80,38 @@ background. Story text switches over at once; menus and game data text after the
 | `[Update] AutoUpdate` | `true` | Downloads new translation packs on launch. |
 | `[Update] IncludeR18` | `true` | Also downloads the adult scenes' text. `false` removes it. |
 | `[Update] PackUrl` | (empty) | Where the packs are published; empty means the patch's own host. |
+| `[Report] LogUntranslatedUi` | `true` | Lists Japanese menu text still on screen in `BepInEx\plugins\GGXEnPatch\ui-untranslated.tsv` (see below). |
+| `[Report] SendUntranslatedUi` | `true` | Sends that list to the translators (see below). |
+| `[Report] ShareScenes` | `true` | Sends the download link of a story scene the translators don't have yet (see below). |
+| `[Report] ReportUrl` | (empty) | Where reports go; empty means the patch's own report service. |
 | `[Debug] MarkUntranslated` | `false` | Prefixes story lines that have no translation yet with `[JP] `. |
-| `[Debug] LogUntranslatedUi` | `false` | Lists Japanese menu text still on screen in `BepInEx\plugins\GGXEnPatch\ui-untranslated.tsv`. |
 
 ## Reporting untranslated text
 
-1. Set `[Debug] LogUntranslatedUi = true` and play normally through the screens that still show
-   Japanese.
-2. Open an issue and attach `BepInEx\plugins\GGXEnPatch\ui-untranslated.tsv`, with a screenshot if you
-   can. **Check the file first:** it can contain your player name, circle name and circle chat
-   lines; delete those rows.
-3. Wrong or awkward English: open an issue with a screenshot and where it appeared.
+While you play, the plugin helps the translators by itself:
+
+- **Untranslated menu text.** Each Japanese menu text that has no English yet is listed once in
+  `BepInEx\plugins\GGXEnPatch\ui-untranslated.tsv` and sent to the translators in small batches.
+  The list leaves out player and circle names, anything typed (profiles, circle introductions),
+  chat, news and story lines. On each launch it drops the rows that have English by now.
+- **Story scenes the translators don't have.** A scene can only be translated once the translators
+  have a copy, and some (character episodes of cards they don't own, for example) are hard to get.
+  On launch the plugin fetches the short list of scenes still missing. When you open one of them,
+  it sends that scene's id and the download link the game used, and the patch's report service
+  downloads the scene from the game's storage. Most players never open a scene on the list, so
+  most never send one.
+
+What is sent: those menu texts (with the name of the screen element they appeared in), scene links,
+and the plugin's version. What is never sent: your player name, account or user id, login, circle,
+chat, or anything about your PC. The report service doesn't store IP addresses (it uses them only to
+limit how often one PC can send), and nothing extra goes to the game's own servers.
+
+To turn sending off, set `[Report] SendUntranslatedUi = false` and/or `[Report] ShareScenes = false`
+(see [Options](#options)). The menu text list is still written, so you can attach it to an issue
+instead. Have a quick look before you post it: the filters work by screen, so a name on a screen
+they don't know can slip through.
+
+Wrong or awkward English: open an issue with a screenshot and where it appeared.
 
 Fixes reach everyone through the next translation update.
 
@@ -98,8 +126,8 @@ game breaks after an update, remove BepInEx until the patch is updated.
 ## How it works
 
 - Nothing is sent to the game server, and no game files are changed. The plugin only changes the
-  text shown on your PC, after the game has loaded it. Its only network use is the translation
-  update check above.
+  text shown on your PC, after the game has loaded it. Its network use is the translation update
+  check and the reports above, both to the patch's own hosts.
 - Translations are matched by their exact Japanese text: story lines as the scenario plays, data
   text in the game's in-memory tables a couple of seconds after they load, and menu labels as
   TextMeshPro draws them.

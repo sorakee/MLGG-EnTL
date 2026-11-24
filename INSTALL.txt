@@ -38,9 +38,17 @@ Options (BepInEx\config\ggx.enpatch.cfg, created on first run):
   [Text]   FitUiLabels = true          Shrink long English menu labels to fit their box.
   [Update] AutoUpdate = true           Download translation updates on launch.
   [Update] IncludeR18 = true           Also download the adult scenes' text.
-  [Debug]  MarkUntranslated = true     Prefix untranslated lines with "[JP] ".
-  [Debug]  LogUntranslatedUi = true    List Japanese menu text still on screen in
+  [Report] LogUntranslatedUi = true    List Japanese menu text still on screen in
                                        BepInEx\plugins\GGXEnPatch\ui-untranslated.tsv.
+  [Report] SendUntranslatedUi = true   Send that list to the translators (player names,
+                                       chat and news are left out).
+  [Report] ShareScenes = true          When you open a story scene the translators don't
+                                       have yet, send its download link so it can be
+                                       translated. Nothing about you or your account is sent.
+
+Translations are updated every week even when the plugin isn't: a quiet
+repository doesn't mean a dead project.
+  [Debug]  MarkUntranslated = true     Prefix untranslated lines with "[JP] ".
 
 Uninstall: delete winhttp.dll, doorstop_config.ini, .doorstop_version and the
 BepInEx and dotnet folders from the game folder.
