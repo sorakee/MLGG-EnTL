@@ -28,8 +28,10 @@ public partial class Plugin : BasePlugin
     public const string DefaultReportUrl = "https://ggxen-report.ggxen.workers.dev";
 #if PERSONAL
     public const string Edition = "Personal";
+    const bool QoLDefault = true;
 #else
     public const string Edition = "Community";
+    const bool QoLDefault = false;
 #endif
 
     internal static ManualLogSource Logger;
@@ -43,6 +45,8 @@ public partial class Plugin : BasePlugin
     internal static ConfigEntry<bool> AutoUpdate;
     internal static ConfigEntry<bool> IncludeR18;
     internal static ConfigEntry<string> PackUrl;
+    internal static ConfigEntry<bool> Demosaic;
+    internal static ConfigEntry<bool> UninterruptedVoice;
     internal static TranslationStore Store;
 
     public override void Load()
@@ -107,6 +111,13 @@ public partial class Plugin : BasePlugin
         Harmony.CreateAndPatchAll(typeof(UiTextPatches));
         AddComponent<MasterTextRunner>();
         AddComponent<TextFitRunner>();
+        // Off by default in the Community edition: each player turns these on for themselves.
+        Demosaic = Config.Bind("QoL", "Demosaic", QoLDefault,
+            "Turn off the mosaic filter in scenes. Only changes what is drawn on this PC.");
+        UninterruptedVoice = Config.Bind("QoL", "UninterruptedVoice", QoLDefault,
+            "In story scenes, let a voice line finish when you advance instead of cutting it off.");
+        if (Demosaic.Value) DemosaicPatches.Apply();
+        if (UninterruptedVoice.Value) UninterruptedVoicePatches.Apply();
         LoadPersonal(dir);
         Logger.LogInfo($"GGX EN Patch {Version} ({Edition}) loaded.");
     }

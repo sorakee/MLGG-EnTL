@@ -65,6 +65,8 @@ Edit `BepInEx\config\ggx.enpatch.cfg` (created on first run):
 | `[Report] SendUntranslatedUi` | `true` | Sends that list to the translators. |
 | `[Report] ShareScenes` | `true` | Sends links to story scenes the translators are missing. |
 | `[Report] ReportUrl` | (empty) | Custom report service. |
+| `[QoL] UninterruptedVoice` | `false` | Lets voice lines finish when you advance a story line. |
+| `[QoL] Demosaic` | `false` | Turns off the scene mosaic (only changes what your PC draws). |
 | `[Debug] MarkUntranslated` | `false` | Prefixes untranslated story lines with `[JP] `. |
 
 ## Reporting
@@ -91,7 +93,8 @@ folders. If a game update breaks things, remove BepInEx until the patch is updat
 ## How it works
 
 The plugin never modifies game files or talks to the game server; it only swaps text on screen
-after loading, matching exact Japanese strings. Translations come as a base pack per channel
+after loading, matching exact Japanese strings (and, with a `[QoL]` option on, changes how scenes look or
+sound on your PC). Translations come as a base pack per channel
 (`main`, `r18`) plus small update packs (a `null` entry removes a line), then your own packs. A new
 base replaces the old one every few weeks. Packs are built and hosted separately from this repo.
 
