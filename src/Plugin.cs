@@ -95,6 +95,27 @@ public partial class Plugin : BasePlugin
             if (!IncludeR18.Value) Updater.RemoveChannel(Store.Dir, "r18");
             Updater.Start(Store.Dir, channels.Select(c => $"{url}/{c}/manifest-{c}.json"));
         }
+        try
+        {
+            PatchGame(dir);
+        }
+        catch (Exception e) when (e.ToString().Contains("Could not load file or assembly", StringComparison.Ordinal))
+        {
+            // Seen 2026-11 (a player's BepInEx\interop lacked GameUi and BepInEx didn't regenerate it).
+            Logger.LogError(e);
+            Logger.LogError("The game's interop assemblies are missing or out of date, so the patch can't hook the " +
+                "game and everything stays Japanese. Close the game, delete the folders BepInEx\\interop and " +
+                "BepInEx\\cache, then start the game and let the first launch finish (it rebuilds them; this takes " +
+                "a while). If that doesn't help: set UpdateInteropAssemblies = true under [IL2CPP] in " +
+                "BepInEx\\config\\BepInEx.cfg, and check that antivirus didn't remove files from BepInEx\\interop.");
+            return;
+        }
+        Logger.LogInfo($"GGX EN Patch {Version} ({Edition}) loaded.");
+    }
+
+    /// <summary>Everything that touches the game's own types (the interop assemblies).</summary>
+    void PatchGame(string dir)
+    {
         var sendUi = SendUntranslatedUi.Value && LogUntranslatedUi.Value;
         if (ShareScenes.Value || sendUi)
         {
@@ -119,7 +140,6 @@ public partial class Plugin : BasePlugin
         if (Demosaic.Value) DemosaicPatches.Apply();
         if (UninterruptedVoice.Value) UninterruptedVoicePatches.Apply();
         LoadPersonal(dir);
-        Logger.LogInfo($"GGX EN Patch {Version} ({Edition}) loaded.");
     }
 
     /// <summary>Extra local tools of the Personal edition (src/Personal/, not in the public repository).</summary>
