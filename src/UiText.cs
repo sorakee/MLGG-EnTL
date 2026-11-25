@@ -70,6 +70,9 @@ static class UiText
         public Regex Pattern;
         public string Anchor;  // longest literal piece: a cheap Contains() before the regex
         public string En;
+        public string Jp;
+        public int Literal;  // characters outside placeholders: the ranking
+        public int Captures;
     }
 
     internal static bool HasJapanese(string s)
@@ -200,8 +203,12 @@ static class UiText
                 Plugin.Logger.LogWarning($"UI format {jp}: {e.Message}");
             }
         }
-        // Most literal text first, so 「{0}日{1}時間」 wins over 「{0}時間」.
-        formats = list.OrderByDescending(f => f.Pattern.ToString().Length).ToArray();
+        // Most literal text first, so 「{0}日{1}時間」 wins over 「{0}時間」 and 「あと{0}日」 over 「{0}あと{1}」
+        // (up to 0.6.0 the regex's length ranked them, and every capture group made a format look longer);
+        // then fewer captures, then the Japanese, so the order never depends on the pack's.
+        // translate/work/ui_resolve_check.py mirrors this.
+        formats = list.OrderByDescending(f => f.Literal).ThenBy(f => f.Captures)
+            .ThenBy(f => f.Jp, StringComparer.Ordinal).ToArray();
 
         // Tidy the log once a session, now that every lookup works (formats included): drop rows translated
         // by now, queue unsent ones.
@@ -348,10 +355,14 @@ static class UiText
         var seen = new HashSet<string>();
         var anchor = "";
         var at = 0;
+        var literals = 0;
+        var captures = 0;
         foreach (Match m in Placeholder.Matches(jp))
         {
             var literal = jp.Substring(at, m.Index - at);
             if (literal.Length > anchor.Length) anchor = literal;
+            literals += literal.Length;
+            captures++;
             pattern.Append(Regex.Escape(literal));
             var name = "p" + m.Groups[1].Value;
             pattern.Append(seen.Add(name) ? $"(?<{name}>.*?)" : $"\\k<{name}>");
@@ -365,6 +376,9 @@ static class UiText
             Pattern = new Regex(pattern.ToString(), RegexOptions.Singleline | RegexOptions.CultureInvariant),
             Anchor = anchor,
             En = en,
+            Jp = jp,
+            Literal = literals + tail.Length,
+            Captures = captures,
         };
     }
 
@@ -382,7 +396,9 @@ static class UiText
     }
 
     /// <summary>The English format with the captured values put in; null if a capture is Japanese
-    /// with no English of its own.</summary>
+    /// with no English of its own. {n:keep} in the English puts such a capture in as it is: names players
+    /// choose (「リーダー権限を{0}に譲渡します…」, a party's name: 「編成7」 translates, 「速攻PT」 stays).
+    /// Plugins up to 0.6.0 don't know it and leave such a text Japanese, as before.</summary>
     static string Fill(string format, Match m, TranslationStore store, int depth)
     {
         var sb = new StringBuilder();
@@ -400,8 +416,9 @@ static class UiText
             var value = g.Value;
             if (HasWords(value))  // full-width digits (「１つ」) pass through as they are
             {
-                value = depth < MaxDepth ? Resolve(value, store, depth + 1) : Exact(value, store);
-                if (value == null) return null;
+                var en = depth < MaxDepth ? Resolve(value, store, depth + 1) : Exact(value, store);
+                if (en == null && !p.Value.EndsWith(":keep}", StringComparison.Ordinal)) return null;
+                value = en ?? value;
             }
             sb.Append(value);
         }
