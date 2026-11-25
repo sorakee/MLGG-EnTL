@@ -13,6 +13,10 @@ show up untranslated until someone reports it.
 > it. Translations are updated weekly and downloaded on every launch, so an old plugin release still
 > gets this week's text.
 
+> [!TIP]
+> **On Android?** The same translations work with the DMM / FANZA GAMES Android apps:
+> [GGX EN Patch for Android](https://github.com/sorakee/MLGG-EnTL-Android).
+
 Unofficial and not affiliated with the publishers. Translated from the Japanese client, separately
 from the official English version.
 
